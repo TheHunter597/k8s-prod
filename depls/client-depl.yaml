@@ -1,0 +1,94 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: client
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: client
+  template:
+    metadata:
+      labels:
+        app: client
+    spec:
+      containers:
+        - name: client
+          image: ecommercemainreg.azurecr.io/client:1.1.3
+          ports:
+            - containerPort: 3000
+          env:
+            - name: AUTH_URL
+              value: auth-srv
+            - name: AUTH_PORT
+              value: "8000"
+            - name: PRODUCTS_URL
+              value: products-srv
+            - name: PRODUCTS_PORT
+              value: "4000"
+            - name: CARTWISHLIST_URL
+              value: cartwishlist-srv
+            - name: CARTWISHLIST_PORT
+              value: "4001"
+            - name: ORDERS_URL
+              value: orders-srv
+            - name: ORDERS_PORT
+              value: "8081"
+            - name: NEXT_PUBLIC_PORTFOLIO_URL
+              value: https://second-portfolio-psi.vercel.app/
+            - name: NEXT_PUBLIC_FIREBASE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: firebase-data
+                  key: NEXT_PUBLIC_FIREBASE_API_KEY
+            - name: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+              valueFrom:
+                secretKeyRef:
+                  name: firebase-data
+                  key: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+            - name: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: firebase-data
+                  key: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+            - name: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+              valueFrom:
+                secretKeyRef:
+                  name: firebase-data
+                  key: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+            - name: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+              valueFrom:
+                secretKeyRef:
+                  name: firebase-data
+                  key: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+            - name: NEXT_PUBLIC_FIREBASE_APP_ID
+              valueFrom:
+                secretKeyRef:
+                  name: firebase-data
+                  key: NEXT_PUBLIC_FIREBASE_APP_ID
+            - name: NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: firebase-data
+                  key: NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
+          resources:
+            requests:
+              memory: "1024Mi"
+              cpu: "250m"
+            limits:
+              memory: "2048Mi"
+              cpu: "1000m"
+      imagePullSecrets:
+        - name: azure-k8s
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: client-srv
+spec:
+  selector:
+    app: client
+  ports:
+    - protocol: TCP
+      port: 3000
+      targetPort: 3000

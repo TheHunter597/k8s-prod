@@ -1,0 +1,89 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb-primary
+  labels:
+    app: mongodb
+spec:
+  ports:
+    - port: 27017
+      targetPort: 27017
+  selector:
+    app: mongodb
+    role: primary
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongodb-primary
+  labels:
+    app: mongodb
+    role: primary
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mongodb
+      role: primary
+  template:
+    metadata:
+      labels:
+        app: mongodb
+        role: primary
+    spec:
+      securityContext:
+        fsGroup: 1001
+      # Group Ownership of Mounted Volumes:
+      # When a volume is mounted into a container, the Kubernetes system can apply a specific group ID to the files in the volume.
+      # The fsGroup setting ensures that all files and directories created within the mounted volume have the specified group ownership.
+      # This is crucial when the processes inside the container need to write to the volume but do not have the appropriate group permissions.
+
+      #  Bitnami MongoDB Image:
+      #   The Bitnami MongoDB Docker image runs the MongoDB process as a non-root user with UID 1001.
+      #   By setting fsGroup: 1001, Kubernetes ensures that the files and directories inside the mounted volume
+      #   are accessible to the MongoDB process, which runs with UID 1001.
+
+      # How It Works
+
+      #   Without fsGroup:
+      #     The files and directories within the mounted volume might not have
+      #     the correct group permissions for the MongoDB process to write to them.
+      #     This results in permission denied errors when MongoDB tries to create or modify files in the /bitnami/mongodb directory.
+
+      #   With fsGroup: 1001:
+      #     Kubernetes changes the group ownership of the volume to 1001 when the volume is mounted.
+      #     The MongoDB process, which runs as UID 1001, now has the necessary group permissions to write to the volume.
+      #     This prevents the mkdir: cannot create directory '/bitnami/mongodb/data': Permission denied error.
+      containers:
+        - name: mongodb-primary
+          image: bitnami/mongodb:latest
+          env:
+            - name: MONGODB_ADVERTISED_HOSTNAME
+              value: mongodb-primary
+            - name: MONGODB_REPLICA_SET_MODE
+              value: primary
+            - name: MONGODB_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: products-mongo
+                  key: password
+            - name: MONGODB_REPLICA_SET_KEY
+              value: replicasetkey123
+          volumeMounts:
+            - name: mongodb-data
+              mountPath: /bitnami/mongodb
+      volumes:
+        - name: mongodb-data
+          persistentVolumeClaim:
+            claimName: mongodb-primary-pvc
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mongodb-primary-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 8Gi

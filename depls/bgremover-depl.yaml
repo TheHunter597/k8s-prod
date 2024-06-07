@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: imageremover-deployment
+spec:
+  replicas: 1 # Adjust the number of replicas as needed
+  selector:
+    matchLabels:
+      app: imageremover
+  template:
+    metadata:
+      labels:
+        app: imageremover
+    spec:
+      containers:
+        - name: imageremover
+          image: thehunter597/imageremover:1.0.3
+          ports:
+            - containerPort: 8000
+          livenessProbe:
+            httpGet:
+              path: /health/
+              port: 8000
+            initialDelaySeconds: 180
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+      imagePullSecrets:
+        - name: azure-k8s
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: imageremover-service
+spec:
+  selector:
+    app: imageremover
+  ports:
+    - protocol: TCP
+      port: 8000
+      targetPort: 8000

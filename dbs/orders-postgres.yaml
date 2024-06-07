@@ -1,0 +1,67 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: orders-postgres-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: orders-postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: orders-postgres
+  serviceName: "orders-postgres"
+  template:
+    metadata:
+      labels:
+        app: orders-postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:latest
+          env:
+            - name: POSTGRES_DB
+              value: "orders"
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: orders-postgres
+                  key: username
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: orders-postgres
+                  key: password
+          ports:
+            - containerPort: 5432
+          volumeMounts:
+            - name: orders-postgres-volume
+              mountPath: /var/lib/postgresql
+  volumeClaimTemplates:
+    - metadata:
+        name: orders-postgres-volume
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 5Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: orders-postgres
+spec:
+  selector:
+    app: orders-postgres
+  ports:
+    - protocol: TCP
+      port: 5432
+      targetPort: 5432

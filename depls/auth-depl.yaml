@@ -1,0 +1,95 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth-deployment
+  labels:
+    app: auth
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: auth
+  template:
+    metadata:
+      labels:
+        app: auth
+    spec:
+      containers:
+        - name: auth
+          image: ecommercemainreg.azurecr.io/auth:1.0.4
+          ports:
+            - containerPort: 8000
+          env:
+            - name: DATABASE_URL
+              value: "authpostgres-service"
+            - name: DATABASE_USER
+              valueFrom:
+                secretKeyRef:
+                  name: auth-postgres
+                  key: username
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: auth-postgres
+                  key: password
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: authsecret
+                  key: JWT_SECRET
+            - name: KAFKA_BROKER
+              value: "kafka-srv:9092"
+            - name: USER_CREATION_TOPIC
+              value: "user-created"
+            - name: BASE_URL
+              value: "http://ecommerce.mohamedhossam.me"
+            - name: ENV
+              value: "PRODUCTION"
+            - name: CLIENT_SRV
+              value: "client-srv"
+            - name: LOGIN_REDIRECT_URL
+              value: "/auth/login/"
+            - name: SMTP_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: mail-data
+                  key: SMTP_HOST
+            - name: SMTP_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: mail-data
+                  key: SMTP_PORT
+            - name: SMTP_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: mail-data
+                  key: SMTP_USERNAME
+            - name: SMTP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mail-data
+                  key: SMTP_PASSWORD
+          livenessProbe:
+            httpGet:
+              path: /health/
+              port: 8000
+            initialDelaySeconds: 360
+            periodSeconds: 60
+            timeoutSeconds: 10
+            failureThreshold: 3
+      imagePullSecrets:
+        - name: azure-k8s
+      restartPolicy: Always
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: auth-srv
+spec:
+  selector:
+    app: auth
+  ports:
+    - protocol: TCP
+      port: 8000
+      targetPort: 8000

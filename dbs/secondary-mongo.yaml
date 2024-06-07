@@ -1,0 +1,52 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb-secondary
+  labels:
+    app: mongodb
+spec:
+  ports:
+    - port: 27017
+      targetPort: 27017
+  selector:
+    app: mongodb
+    role: secondary
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongodb-secondary
+  labels:
+    app: mongodb
+    role: secondary
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mongodb
+      role: secondary
+  template:
+    metadata:
+      labels:
+        app: mongodb
+        role: secondary
+    spec:
+      containers:
+        - name: mongodb-secondary
+          image: bitnami/mongodb:latest
+          env:
+            - name: MONGODB_ADVERTISED_HOSTNAME
+              value: mongodb-secondary
+            - name: MONGODB_REPLICA_SET_MODE
+              value: secondary
+            - name: MONGODB_INITIAL_PRIMARY_HOST
+              value: mongodb-primary
+            - name: MONGODB_INITIAL_PRIMARY_PORT_NUMBER
+              value: "27017"
+            - name: MONGODB_INITIAL_PRIMARY_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: products-mongo
+                  key: password
+            - name: MONGODB_REPLICA_SET_KEY
+              value: replicasetkey123

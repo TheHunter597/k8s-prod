@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: springorders
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: springorders
+  template:
+    metadata:
+      labels:
+        app: springorders
+    spec:
+      containers:
+        - name: springorders
+          image: ecommercemainreg.azurecr.io/orders:1.0.3
+          ports:
+            - containerPort: 8081
+          env:
+            - name: DATABASE_URL
+              value: orders-postgres
+            - name: DATABASE_USER
+              valueFrom:
+                secretKeyRef:
+                  name: orders-postgres
+                  key: username
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: orders-postgres
+                  key: password
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: authsecret
+                  key: JWT_SECRET
+            - name: KAFKA_BROKER
+              value: kafka-srv:9092
+            - name: ENV
+              value: PRODUCTION
+          livenessProbe:
+            httpGet:
+              path: /health/
+              port: 8081
+            initialDelaySeconds: 180
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+      imagePullSecrets:
+        - name: azure-k8s
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: orders-srv
+spec:
+  selector:
+    app: springorders
+  ports:
+    - protocol: TCP
+      port: 8081
+      targetPort: 8081

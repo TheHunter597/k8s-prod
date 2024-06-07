@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cartwishlist-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cartwishlist
+  template:
+    metadata:
+      labels:
+        app: cartwishlist
+    spec:
+      containers:
+        - name: cartwishlist
+          image: ecommercemainreg.azurecr.io/cartwishlist:1.0.4
+          ports:
+            - containerPort: 4001
+          env:
+            - name: JWTSECRET
+              valueFrom:
+                secretKeyRef:
+                  name: authsecret
+                  key: JWT_SECRET
+            - name: KAFKA_BROKER
+              value: "kafka-srv:9092"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: cartwishlist-url
+                  key: DATABASE_URL
+            - name: REDIS_HOST
+              value: "cartwishlistredis-service"
+            - name: REDIS_PORT
+              value: "6379"
+            - name: REDIS_EXPIRY
+              value: "3600"
+          livenessProbe:
+            httpGet:
+              path: /health/
+              port: 4001
+            initialDelaySeconds: 120
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health/
+              port: 4001
+            initialDelaySeconds: 120
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+      imagePullSecrets:
+        - name: azure-k8s
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cartwishlist-srv
+spec:
+  selector:
+    app: cartwishlist
+  ports:
+    - protocol: TCP
+      port: 4001
+      targetPort: 4001

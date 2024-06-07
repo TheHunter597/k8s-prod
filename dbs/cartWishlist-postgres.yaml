@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cartwishlistpostgres-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cartwishlistpostgres
+  template:
+    metadata:
+      labels:
+        app: cartwishlistpostgres
+    spec:
+      containers:
+        - name: cartwishlistpostgres
+          image: postgres:latest
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: "cartwishlistdb"
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: cartwishlist-postgres
+                  key: username
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cartwishlist-postgres
+                  key: password
+          volumeMounts:
+            - name: cartwishlistpostgres-volume
+              mountPath: /var/lib/postgresql
+      volumes:
+        - name: cartwishlistpostgres-volume
+          persistentVolumeClaim:
+            claimName: cartwishlistpostgres-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cartwishlistpostgres-service
+spec:
+  selector:
+    app: cartwishlistpostgres
+  ports:
+    - protocol: TCP
+      port: 5432
+      targetPort: 5432
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: cartwishlistpostgres-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 8Gi

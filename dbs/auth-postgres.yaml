@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: authpostgres-deployment
+  labels:
+    app: authpostgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: authpostgres
+  template:
+    metadata:
+      labels:
+        app: authpostgres
+    spec:
+      containers:
+        - name: authpostgres
+          image: postgres:latest
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: "Users"
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: auth-postgres
+                  key: username
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: auth-postgres
+                  key: password
+          volumeMounts:
+            - name: authpostdb2
+              mountPath: /var/lib/postgresql
+      volumes:
+        - name: authpostdb2
+          persistentVolumeClaim:
+            claimName: authpostgres-pvc
+      restartPolicy: Always
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: authpostgres-service
+  labels:
+    app: authpostgres
+spec:
+  selector:
+    app: authpostgres
+  ports:
+    - protocol: TCP
+      port: 5432
+      targetPort: 5432
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: authpostgres-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 8Gi

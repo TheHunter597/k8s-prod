@@ -1,0 +1,48 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: cartwishlistredis
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 4Gi
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cartwishlistredis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cartwishlistredis
+  template:
+    metadata:
+      labels:
+        app: cartwishlistredis
+    spec:
+      containers:
+        - name: redis
+          image: redis:latest
+          ports:
+            - containerPort: 6379
+
+      volumes:
+        - name: redis-data
+          persistentVolumeClaim:
+            claimName: cartwishlistredis
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cartwishlistredis-service
+spec:
+  selector:
+    app: cartwishlistredis
+  ports:
+    - protocol: TCP
+      port: 6379
+      targetPort: 6379
