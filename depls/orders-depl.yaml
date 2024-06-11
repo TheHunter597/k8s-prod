@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: springorders
-          image: ecommercemainreg.azurecr.io/orders:1.0.3
+          image: ecommercemainreg.azurecr.io/orders:1.0.4
           ports:
             - containerPort: 8081
           env:

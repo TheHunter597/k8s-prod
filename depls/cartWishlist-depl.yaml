@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: cartwishlist
-          image: ecommercemainreg.azurecr.io/cartwishlist:1.0.4
+          image: ecommercemainreg.azurecr.io/cartwishlist:1.0.5
           ports:
             - containerPort: 4001
           env:
